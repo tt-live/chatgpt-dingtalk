@@ -86,6 +86,14 @@ func Start() {
 		}
 		// 去除问题的前后空格
 		msgObj.Text.Content = strings.TrimSpace(msgObj.Text.Content)
+		if public.JudgeSensitiveWord(msgObj.Text.Content) {
+			_, err = msgObj.ReplyToDingtalk(string(dingbot.MARKDOWN), "**🤷 抱歉，您提问的问题中包含敏感词汇，请审核自己的对话内容之后再进行！**")
+			if err != nil {
+				logger.Warning(fmt.Errorf("send message error: %v", err))
+				return err
+			}
+			return nil
+		}
 		// 打印钉钉回调过来的请求明细，调试时打开
 		logger.Debug(fmt.Sprintf("dingtalk callback parameters: %#v", msgObj))
 
@@ -115,7 +123,7 @@ func Start() {
 		}
 
 		// 不在允许群组，不在允许用户（包括在黑名单），满足任一条件，拒绝会话；管理员不受限制
-		if !public.JudgeGroup(msgObj.ConversationID) && !public.JudgeAdminUsers(msgObj.SenderStaffId) && msgObj.SenderStaffId != "" {
+		if msgObj.ConversationType == "2" && !public.JudgeGroup(msgObj.ConversationID) && !public.JudgeAdminUsers(msgObj.SenderStaffId) && msgObj.SenderStaffId != "" {
 			logger.Info(fmt.Sprintf("🙋『%s』群组未被验证通过，群ID: %#v，userid：%#v, 昵称: %#v，消息: %#v", msgObj.ConversationTitle, msgObj.ConversationID, msgObj.SenderStaffId, msgObj.SenderNick, msgObj.Text.Content))
 			_, err = msgObj.ReplyToDingtalk(string(dingbot.MARKDOWN), "**🤷 抱歉，该群组未被认证通过，无法使用机器人对话功能。**\n>如需继续使用，请联系管理员申请访问权限。")
 			if err != nil {
@@ -132,7 +140,7 @@ func Start() {
 			}
 			return nil
 		}
-		if len(msgObj.Text.Content) == 1 || msgObj.Text.Content == "帮助" {
+		if len(msgObj.Text.Content) == 0 || msgObj.Text.Content == "帮助" {
 			// 欢迎信息
 			_, err := msgObj.ReplyToDingtalk(string(dingbot.MARKDOWN), public.Config.Help)
 			if err != nil {
