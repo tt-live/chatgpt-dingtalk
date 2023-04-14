@@ -145,7 +145,7 @@ func Do(mode string, rmsg *dingbot.ReceiveMsg) error {
 			if err != nil {
 				logger.Error("往MySQL新增数据失败,错误信息：", err)
 			}
-			logger.Info(fmt.Sprintf("🤖 %s得到的答案: %#v", rmsg.SenderNick, reply))
+			//logger.Info(fmt.Sprintf("🤖 %s得到的答案: %#v", rmsg.SenderNick, reply))
 			// 回复@我的用户
 			_, err = rmsg.ReplyToDingtalk(string(dingbot.TEXT), reply)
 			if err != nil {
@@ -203,7 +203,7 @@ func Do(mode string, rmsg *dingbot.ReceiveMsg) error {
 			}
 			// 将当前回答的ID放入缓存
 			public.UserService.SetAnswerID(rmsg.SenderNick, rmsg.GetChatTitle(), aid)
-			logger.Info(fmt.Sprintf("🤖 %s得到的答案: %#v", rmsg.SenderNick, reply))
+			//logger.Info(fmt.Sprintf("🤖 %s得到的答案: %#v", rmsg.SenderNick, reply))
 			// 回复@我的用户
 			_, err = rmsg.ReplyToDingtalk(string(dingbot.TEXT), reply)
 			if err != nil {

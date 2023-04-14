@@ -1,10 +1,7 @@
 package dingbot
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"net/http"
 )
 
 // 接收的消息体
@@ -92,32 +89,8 @@ func (r ReceiveMsg) ReplyToDingtalk(msgType, msg string) (statuscode int, err er
 	if atUser == "" {
 		msg = fmt.Sprintf("%s\n\n@%s", msg, r.SenderNick)
 	}
-	var msgtmp interface{}
-	switch msgType {
-	case string(TEXT):
-		msgtmp = &TextMessage{Text: &Text{Content: msg}, MsgType: TEXT, At: &At{AtUserIds: []string{atUser}}}
-	case string(MARKDOWN):
-		msgtmp = &MarkDownMessage{MsgType: MARKDOWN, At: &At{AtUserIds: []string{atUser}}, MarkDown: &MarkDown{Title: "Markdown Type", Text: msg}}
-	default:
-		msgtmp = &TextMessage{Text: &Text{Content: msg}, MsgType: TEXT, At: &At{AtUserIds: []string{atUser}}}
-	}
 
-	data, err := json.Marshal(msgtmp)
-	if err != nil {
-		return 0, err
-	}
+	fmt.Printf("\n响应内容:\n%v\n", msg)
 
-	req, err := http.NewRequest("POST", r.SessionWebhook, bytes.NewBuffer(data))
-	if err != nil {
-		return 0, err
-	}
-	req.Header.Add("Accept", "*/*")
-	req.Header.Add("Content-Type", "application/json")
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return 0, err
-	}
-	defer resp.Body.Close()
-	return resp.StatusCode, nil
+	return
 }

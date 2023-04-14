@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"net/http"
@@ -22,7 +23,44 @@ func init() {
 	logger.InitLogger(public.Config.LogLevel)
 }
 func main() {
-	Start()
+	StartCmd()
+}
+
+func StartCmd() {
+
+	scanner := bufio.NewScanner(os.Stdin)
+	for {
+		fmt.Print("\n请输入：")
+		scanner.Scan()
+		input := scanner.Text()
+		msg := dingbot.ReceiveMsg{
+			ConversationID: "ttlive",
+			ChatbotUserID:  "ttlive",
+			SenderNick:     "ttlive",
+			SenderStaffId:  "ttlive",
+			Text:           dingbot.Text{Content: input},
+		}
+
+		ProcessRequest(msg)
+	}
+}
+
+func ProcessRequest(msgObj dingbot.ReceiveMsg) {
+	// 去除问题的前后空格
+	msgObj.Text.Content = strings.TrimSpace(msgObj.Text.Content)
+
+	if len(msgObj.Text.Content) == 1 || msgObj.Text.Content == "帮助" {
+		// 欢迎信息
+		_, err := msgObj.ReplyToDingtalk(string(dingbot.MARKDOWN), public.Config.Help)
+		if err != nil {
+			logger.Warning(fmt.Errorf("send message error: %v", err))
+			return
+		}
+	} else {
+		// 除去帮助之外的逻辑分流在这里处理
+		msgObj.Text.Content, _ = process.GeneratePrompt(msgObj.Text.Content)
+		process.ProcessRequest(&msgObj)
+	}
 }
 
 func Start() {
