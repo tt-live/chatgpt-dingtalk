@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/eryajf/chatgpt-dingtalk/pkg/dingbot"
@@ -28,20 +29,34 @@ func main() {
 
 func StartCmd() {
 
+	go router()
+
+	port := ":" + public.Config.Port
+	logger.Info("🚀 The HTTP Server is running on", port)
+
+	// Create a channel to receive the os.Signal exit signal
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
-		fmt.Print("\n请输入：")
-		scanner.Scan()
-		input := scanner.Text()
-		msg := dingbot.ReceiveMsg{
-			ConversationID: "ttlive",
-			ChatbotUserID:  "ttlive",
-			SenderNick:     "ttlive",
-			SenderStaffId:  "ttlive",
-			Text:           dingbot.Text{Content: input},
+		select {
+		case <-sigs:
+			logger.Info("Shutting down server input...")
+			return
+		default:
+			fmt.Print("\n请输入：")
+			scanner.Scan()
+			input := scanner.Text()
+			msg := dingbot.ReceiveMsg{
+				ConversationID: "ttlive",
+				ChatbotUserID:  "ttlive",
+				SenderNick:     "ttlive",
+				SenderStaffId:  "ttlive",
+				Text:           dingbot.Text{Content: input},
+			}
+			ProcessRequest(msg)
 		}
-
-		ProcessRequest(msg)
 	}
 }
 
@@ -58,9 +73,70 @@ func ProcessRequest(msgObj dingbot.ReceiveMsg) {
 		}
 	} else {
 		// 除去帮助之外的逻辑分流在这里处理
-		msgObj.Text.Content, _ = process.GeneratePrompt(msgObj.Text.Content)
-		process.ProcessRequest(&msgObj)
+		switch {
+		case strings.HasPrefix(msgObj.Text.Content, "#查对话"):
+			process.SelectHistory(&msgObj)
+		default:
+			msgObj.Text.Content, _ = process.GeneratePrompt(msgObj.Text.Content)
+			process.ProcessRequest(&msgObj)
+		}
 	}
+}
+
+func router() {
+	app := ship.Default()
+	// 解析生成后的历史聊天
+	app.Route("/history/:filename").GET(func(c *ship.Context) error {
+		filename := c.Param("filename")
+		root := "./data/chatHistory/"
+		return c.File(filepath.Join(root, filename))
+	})
+	// 直接下载文件
+	app.Route("/download/:filename").GET(func(c *ship.Context) error {
+		filename := c.Param("filename")
+		root := "./data/chatHistory/"
+		return c.Attachment(filepath.Join(root, filename), "")
+	})
+	// 服务器健康检测
+	app.Route("/").GET(func(c *ship.Context) error {
+		//返回消息优雅一点，告诉用户欢迎使用ding ding机器人服务 服务状态oK
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status": "ok",
+			"msg":    "欢迎使用chat-gpt机器人",
+		})
+	})
+	port := ":" + public.Config.Port
+	srv := &http.Server{
+		Addr:    port,
+		Handler: app,
+	}
+
+	// Initializing the server in a goroutine so that
+	// it won't block the graceful shutdown handling below
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("listen: %s\n", err)
+		}
+	}()
+
+	// Wait for interrupt signal to gracefully shutdown the server with
+	// a timeout of 5 seconds.
+	quit := make(chan os.Signal, 1)
+	// kill (no param) default send syscall.SIGTERM
+	// kill -2 is syscall.SIGINT
+	// kill -9 is syscall.SIGKILL but can't be catch, so don't need add it
+	// signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+	logger.Info("Shutting down server...")
+
+	// 5秒后强制退出
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		logger.Fatal("Server forced to shutdown:", err)
+	}
+	logger.Info("Server exiting!")
 }
 
 func Start() {

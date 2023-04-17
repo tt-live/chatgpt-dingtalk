@@ -56,7 +56,7 @@ func SelectHistory(rmsg *dingbot.ReceiveMsg) error {
 		return err
 	}
 	// 回复@我的用户
-	reply := fmt.Sprintf("- 在线查看: [点我](%s)\n- 下载文件: [点我](%s)\n- 在线预览请安装插件:[Markdown Preview Plus](https://chrome.google.com/webstore/detail/markdown-preview-plus/febilkbfcbhebfnokafefeacimjdckgl)", public.Config.ServiceURL+"/history/"+fileName, public.Config.ServiceURL+"/download/"+fileName)
+	reply := fmt.Sprintf("- 在线查看: [点我](%s)\n- 下载文件: [点我](%s)\n- 在线预览请安装插件:[Markdown Preview Plus](https://chrome.google.com/webstore/detail/markdown-preview-plus/febilkbfcbhebfnokafefeacimjdckgl)", public.Config.ServiceURL+":"+public.Config.Port+"/history/"+fileName, public.Config.ServiceURL+":"+public.Config.Port+"/download/"+fileName)
 	logger.Info(fmt.Sprintf("🤖 %s 得到的答案: %#v", rmsg.SenderNick, reply))
 	_, err = rmsg.ReplyToDingtalk(string(dingbot.MARKDOWN), reply)
 	if err != nil {
