@@ -60,3 +60,25 @@ func OutPutHistory(name string) string {
 	}
 	return rst
 }
+
+func ClearHistory(rmsg *dingbot.ReceiveMsg) error {
+	name := strings.TrimSpace(strings.Split(rmsg.Text.Content, ":")[1])
+	// 获取数据列表
+	var chat db.Chat
+	if !chat.Exist(map[string]interface{}{"username": name}) {
+		_, err := rmsg.ReplyToDingtalk(string(dingbot.TEXT), "用户名错误，这个用户不存在，请核实之后再进行查询")
+		if err != nil {
+			logger.Error(fmt.Errorf("send message error: %v", err))
+			return err
+		}
+		return fmt.Errorf("用户名错误，这个用户不存在，请核实之后重新查询")
+	}
+
+	err := chat.Delete(name)
+	_, err = rmsg.ReplyToDingtalk(string(dingbot.MARKDOWN), fmt.Sprintf("用户：%s对话清理成功🔜🗑️！", name))
+	if err != nil {
+		logger.Error(fmt.Errorf("send message error: %v", err))
+		return err
+	}
+	return nil
+}

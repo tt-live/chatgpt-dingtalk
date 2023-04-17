@@ -32,6 +32,12 @@ func (c Chat) Add() (uint, error) {
 	return c.ID, err
 }
 
+// Delete 添加资源
+func (c Chat) Delete(username string) error {
+	err := DB.Delete(&Chat{}, "username = ?", username).Error
+	return err
+}
+
 // Find 获取单个资源
 func (c Chat) Find(filter map[string]interface{}, data *Chat) error {
 	return DB.Where(filter).First(&data).Error

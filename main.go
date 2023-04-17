@@ -84,6 +84,8 @@ func ProcessRequest(msgObj dingbot.ReceiveMsg) {
 		switch {
 		case strings.HasPrefix(msgObj.Text.Content, "#查对话"):
 			process.SelectHistory(&msgObj)
+		case strings.HasPrefix(msgObj.Text.Content, "#清空对话"):
+			process.ClearHistory(&msgObj)
 		case strings.HasPrefix(msgObj.Text.Content, "#标题设置"):
 			process.SetTitle(&msgObj)
 		default:
