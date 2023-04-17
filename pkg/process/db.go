@@ -2,13 +2,11 @@ package process
 
 import (
 	"fmt"
-	"strings"
-	"time"
-
 	"github.com/eryajf/chatgpt-dingtalk/pkg/db"
 	"github.com/eryajf/chatgpt-dingtalk/pkg/dingbot"
 	"github.com/eryajf/chatgpt-dingtalk/pkg/logger"
 	"github.com/eryajf/chatgpt-dingtalk/public"
+	"strings"
 )
 
 // 与数据库交互的请求处理在此
@@ -16,14 +14,6 @@ import (
 // SelectHistory 查询会话历史
 func SelectHistory(rmsg *dingbot.ReceiveMsg) error {
 	name := strings.TrimSpace(strings.Split(rmsg.Text.Content, ":")[1])
-	if !public.JudgeAdminUsers(rmsg.SenderStaffId) {
-		_, err := rmsg.ReplyToDingtalk(string(dingbot.MARKDOWN), "**🤷 抱歉，您没有查询对话记录的权限，只有程序管理员可以查询！**")
-		if err != nil {
-			logger.Error(fmt.Errorf("send message error: %v", err))
-			return err
-		}
-		return nil
-	}
 	// 获取数据列表
 	var chat db.Chat
 	if !chat.Exist(map[string]interface{}{"username": name}) {
@@ -34,11 +24,29 @@ func SelectHistory(rmsg *dingbot.ReceiveMsg) error {
 		}
 		return fmt.Errorf("用户名错误，这个用户不存在，请核实之后重新查询")
 	}
+
+	// 回复@我的用户
+	reply := fmt.Sprintf("- 在线查看: [点我](%s)\n- 下载文件: [点我](%s)\n- 在线预览请安装插件:[Markdown Preview Plus](https://chrome.google.com/webstore/detail/markdown-preview-plus/febilkbfcbhebfnokafefeacimjdckgl)", public.Config.ServiceURL+":"+public.Config.Port+"/history/"+name+".md", public.Config.ServiceURL+":"+public.Config.Port+"/download/"+name+".md")
+
+	_, err := rmsg.ReplyToDingtalk(string(dingbot.MARKDOWN), reply)
+	if err != nil {
+		logger.Error(fmt.Errorf("send message error: %v", err))
+		return err
+	}
+	return nil
+}
+
+func OutPutHistory(name string) string {
+	names := strings.Split(name, ".")
+	if len(names) == 2 {
+		name = names[0]
+	}
+	var chat db.Chat
 	chats, err := chat.List(db.ChatListReq{
 		Username: name,
 	})
 	if err != nil {
-		return err
+		return ""
 	}
 	var rst string
 	for _, chatTmp := range chats {
@@ -50,18 +58,5 @@ func SelectHistory(rmsg *dingbot.ReceiveMsg) error {
 		}
 		// TODO: 答案应该严格放在问题之后，目前只根据ID排序进行的陈列，当一个用户同时提出多个问题时，最终展示的可能会有点问题
 	}
-	fileName := time.Now().Format("20060102-150405") + ".md"
-	// 写入文件
-	if err = public.WriteToFile("./data/chatHistory/"+fileName, []byte(rst)); err != nil {
-		return err
-	}
-	// 回复@我的用户
-	reply := fmt.Sprintf("- 在线查看: [点我](%s)\n- 下载文件: [点我](%s)\n- 在线预览请安装插件:[Markdown Preview Plus](https://chrome.google.com/webstore/detail/markdown-preview-plus/febilkbfcbhebfnokafefeacimjdckgl)", public.Config.ServiceURL+":"+public.Config.Port+"/history/"+fileName, public.Config.ServiceURL+":"+public.Config.Port+"/download/"+fileName)
-	logger.Info(fmt.Sprintf("🤖 %s 得到的答案: %#v", rmsg.SenderNick, reply))
-	_, err = rmsg.ReplyToDingtalk(string(dingbot.MARKDOWN), reply)
-	if err != nil {
-		logger.Error(fmt.Errorf("send message error: %v", err))
-		return err
-	}
-	return nil
+	return rst
 }

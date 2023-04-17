@@ -20,3 +20,15 @@ func (s *UserService) GetAnswerID(userId, chattitle string) uint {
 func (s *UserService) ClearAnswerID(userId, chattitle string) {
 	s.cache.Delete(userId + "_" + chattitle)
 }
+
+func (s *UserService) GetUserName() string {
+	username, ok := s.cache.Get("chat_user_name")
+	if !ok {
+		return "chat-gpt"
+	}
+	return username.(string)
+}
+
+func (s *UserService) SetUserName(username string) {
+	s.cache.Set("chat_user_name", username, time.Hour*24*10)
+}

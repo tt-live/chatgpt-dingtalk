@@ -49,13 +49,21 @@ func StartCmd() {
 			scanner.Scan()
 			input := scanner.Text()
 			msg := dingbot.ReceiveMsg{
-				ConversationID: "ttlive",
-				ChatbotUserID:  "ttlive",
-				SenderNick:     "ttlive",
-				SenderStaffId:  "ttlive",
+				ConversationID: public.UserService.GetUserName(),
+				ChatbotUserID:  public.UserService.GetUserName(),
+				SenderNick:     public.UserService.GetUserName(),
+				SenderStaffId:  public.UserService.GetUserName(),
 				Text:           dingbot.Text{Content: input},
 			}
-			ProcessRequest(msg)
+			if strings.TrimSpace(input) == "" {
+				_, err := msg.ReplyToDingtalk(string(dingbot.MARKDOWN), "输入问题为空，请重新输入！")
+				if err != nil {
+					logger.Warning(fmt.Errorf("input message error: %v", err))
+					return
+				}
+			} else {
+				ProcessRequest(msg)
+			}
 		}
 	}
 }
@@ -76,6 +84,8 @@ func ProcessRequest(msgObj dingbot.ReceiveMsg) {
 		switch {
 		case strings.HasPrefix(msgObj.Text.Content, "#查对话"):
 			process.SelectHistory(&msgObj)
+		case strings.HasPrefix(msgObj.Text.Content, "#标题设置"):
+			process.SetTitle(&msgObj)
 		default:
 			msgObj.Text.Content, _ = process.GeneratePrompt(msgObj.Text.Content)
 			process.ProcessRequest(&msgObj)
@@ -86,10 +96,10 @@ func ProcessRequest(msgObj dingbot.ReceiveMsg) {
 func router() {
 	app := ship.Default()
 	// 解析生成后的历史聊天
-	app.Route("/history/:filename").GET(func(c *ship.Context) error {
-		filename := c.Param("filename")
-		root := "./data/chatHistory/"
-		return c.File(filepath.Join(root, filename))
+	app.Route("/history/:username").GET(func(c *ship.Context) error {
+		username := c.Param("username")
+		resp := process.OutPutHistory(username)
+		return c.Blob(http.StatusOK, "text/markdown;charset=utf-8", []byte(resp))
 	})
 	// 直接下载文件
 	app.Route("/download/:filename").GET(func(c *ship.Context) error {

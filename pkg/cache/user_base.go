@@ -11,6 +11,8 @@ type UserServiceInterface interface {
 	// 用户聊天模式
 	GetUserMode(userId string) string
 	SetUserMode(userId, mode string)
+	GetUserName() string
+	SetUserName(username string)
 	ClearUserMode(userId string)
 	// 用户聊天上下文
 	GetUserSessionContext(userId string) string
