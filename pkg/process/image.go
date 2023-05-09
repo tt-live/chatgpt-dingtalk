@@ -47,7 +47,7 @@ func ImageGenerate(rmsg *dingbot.ReceiveMsg) error {
 	} else {
 		reply = strings.TrimSpace(reply)
 		reply = strings.Trim(reply, "\n")
-		reply = fmt.Sprintf(">点击图片可旋转或放大。\n![](%s)", reply)
+		reply = fmt.Sprintf("![](%s)", reply)
 		aObj := db.Chat{
 			Username:      rmsg.SenderNick,
 			Source:        rmsg.GetChatTitle(),
@@ -59,7 +59,7 @@ func ImageGenerate(rmsg *dingbot.ReceiveMsg) error {
 		if err != nil {
 			logger.Error("往MySQL新增数据失败,错误信息：", err)
 		}
-		logger.Info(fmt.Sprintf("🤖 %s得到的答案: %#v", rmsg.SenderNick, reply))
+		//logger.Info(fmt.Sprintf("🤖 %s得到的答案: %#v", rmsg.SenderNick, reply))
 		// 回复@我的用户
 		_, err = rmsg.ReplyToDingtalk(string(dingbot.MARKDOWN), reply)
 		if err != nil {

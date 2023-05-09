@@ -88,6 +88,10 @@ func ProcessRequest(msgObj dingbot.ReceiveMsg) {
 			process.ClearHistory(&msgObj)
 		case strings.HasPrefix(msgObj.Text.Content, "#标题设置"):
 			process.SetTitle(&msgObj)
+		case strings.HasPrefix(msgObj.Text.Content, "#用户列表"):
+			process.GetUserList(&msgObj)
+		case strings.HasPrefix(msgObj.Text.Content, "#图片"):
+			process.ImageGenerate(&msgObj)
 		default:
 			msgObj.Text.Content, _ = process.GeneratePrompt(msgObj.Text.Content)
 			process.ProcessRequest(&msgObj)
@@ -108,6 +112,12 @@ func router() {
 		filename := c.Param("filename")
 		root := "./data/chatHistory/"
 		return c.Attachment(filepath.Join(root, filename), "")
+	})
+	// 解析生成后的图片
+	app.Route("/images/:filename").GET(func(c *ship.Context) error {
+		filename := c.Param("filename")
+		root := "./data/images/"
+		return c.File(filepath.Join(root, filename))
 	})
 	// 服务器健康检测
 	app.Route("/").GET(func(c *ship.Context) error {

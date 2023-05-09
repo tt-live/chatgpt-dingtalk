@@ -38,6 +38,13 @@ func (c Chat) Delete(username string) error {
 	return err
 }
 
+// UserList 添加资源
+func (c Chat) UserList() ([]*Chat, error) {
+	var list []*Chat
+	err := DB.Model(&Chat{}).Select("username").Group("username").Find(&list).Error
+	return list, err
+}
+
 // Find 获取单个资源
 func (c Chat) Find(filter map[string]interface{}, data *Chat) error {
 	return DB.Where(filter).First(&data).Error

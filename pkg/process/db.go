@@ -82,3 +82,26 @@ func ClearHistory(rmsg *dingbot.ReceiveMsg) error {
 	}
 	return nil
 }
+
+func GetUserList(rmsg *dingbot.ReceiveMsg) error {
+	// 获取数据列表
+	var chat db.Chat
+
+	list, err := chat.UserList()
+	if err != nil {
+		logger.Error(fmt.Errorf("user list error: %v", err))
+		return err
+	}
+
+	var userList string
+	for _, item := range list {
+		userList += "\n 👉" + item.Username
+	}
+
+	_, err = rmsg.ReplyToDingtalk(string(dingbot.MARKDOWN), fmt.Sprintf("⬇️用户列表：%s", userList))
+	if err != nil {
+		logger.Error(fmt.Errorf("send message error: %v", err))
+		return err
+	}
+	return nil
+}

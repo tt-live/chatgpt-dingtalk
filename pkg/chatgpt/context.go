@@ -226,7 +226,7 @@ func (c *ChatGPT) GenreateImage(prompt string) (string, error) {
 		model == openai.GPT432K || model == openai.GPT432K0314 {
 		req := openai.ImageRequest{
 			Prompt:         prompt,
-			Size:           openai.CreateImageSize1024x1024,
+			Size:           openai.CreateImageSize512x512,
 			ResponseFormat: openai.CreateImageResponseFormatB64JSON,
 			N:              1,
 			User:           c.userId,
@@ -261,7 +261,7 @@ func (c *ChatGPT) GenreateImage(prompt string) (string, error) {
 			return "", err
 		}
 
-		return public.Config.ServiceURL + "/images/" + imageName, nil
+		return public.Config.ServiceURL + ":" + public.Config.Port + "/images/" + imageName, nil
 	}
 	return "", nil
 }
